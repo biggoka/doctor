@@ -68,27 +68,27 @@
                         (me you)
                         (mine yours)
                         (my your)
-						(myself yourself)
+			(myself yourself)
                         (you i)
                         (your my)
                         (yours mine)
-						(yourself myself))
+			(yourself myself))
                       phrase)
  )
   
 ; осуществление всех замен в списке lst по ассоциативному списку replacement-pairs
 (define (many-replace replacement-pairs lst)
-        (cond ((null? lst) lst)
-              (else (let ((pat-rep (assoc (car lst) replacement-pairs))) ; Доктор ищет первый элемент списка в ассоциативном списке замен
-                      (cons (if pat-rep (cadr pat-rep) ; если поиск был удачен, то в начало ответа Доктор пишет замену
-                                (car lst) ; иначе в начале ответа помещается начало списка без изменений
-                            )
-                            (many-replace replacement-pairs (cdr lst)) ; рекурсивно производятся замены в хвосте списка
-                        )
-                     )
-               )
-         )
-  )
+  (map (lambda x (let ((rep (assoc x replacement-pairs)))
+                   (if rep (cadr rep) x))) lst))
+  
+;(define (many-replace replacement-pairs lst)
+;        (cond ((null? lst) lst)
+;              (else (let ((pat-rep (assoc (car lst) replacement-pairs))) ; Доктор ищет первый элемент списка в ассоциативном списке замен
+;                      (cons (if pat-rep (cadr pat-rep) ; если поиск был удачен, то в начало ответа Доктор пишет замену
+;                                (car lst) ; иначе в начале ответа помещается начало списка без изменений
+;                            )
+;                            (many-replace replacement-pairs (cdr lst)) ; рекурсивно производятся замены в хвосте списка
+;                        )))))
 
 ; 2й способ генерации ответной реплики -- случайный выбор одной из заготовленных фраз, не связанных с репликой пользователя
 (define (hedge)
