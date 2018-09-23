@@ -7,12 +7,12 @@
 (define (visit-doctor name)
   (printf "Hello, ~a!\n" name)
   (print '(what seems to be the trouble?))
-  (doctor-driver-loop name)
+  (doctor-driver-loop name '())
 )
 
 ; цикл диалога Доктора с пациентом
 ; параметр name -- имя пациента
-(define (doctor-driver-loop name)
+(define (doctor-driver-loop name prev-responses)
     (newline)
     (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
     (let ((user-response (read)))
@@ -20,25 +20,28 @@
 	    ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
              (printf "Goodbye, ~a!\n" name)
              (print '(see you next week)))
-            (else (print (reply user-response)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
-                  (doctor-driver-loop name)
+            (else (print (reply user-response prev-responses)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
+                  (doctor-driver-loop name (cons user-response prev-responses))
              )
        )
       )
 )
 
 ; генерация ответной реплики по user-response -- реплике от пользователя 
-(define (reply user-response)
-      (cond ((fifty-fifty) ; с равной вероятностью выбирается один из двух способов построения ответа
-               (qualifier-answer user-response)) ; 1й способ
-            (else (hedge))  ; 2й способ
-      )
-)
+(define (reply user-response prev-responses)
+  (let ((rand (if (>= (length prev-responses) 3) (random 3) (random 2))))
+    (cond ((= rand 0) (hedge))
+          ((= rand 1) (qualifier-answer user-response))
+          (else (history-answer prev-responses)))))
+  
 
 ; возвращает #f с вероятностью 1/2 либо #t с вероятностью 1/2
 (define (fifty-fifty)
   (= (random 2) 0)
 )
+
+(define (history-answer prev-responses)
+  (append '(earlier you said that) (change-person (pick-random prev-responses))))
 			
 ; 1й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату нового начала
 (define (qualifier-answer user-response)
@@ -78,7 +81,7 @@
   
 ; осуществление всех замен в списке lst по ассоциативному списку replacement-pairs
 (define (many-replace replacement-pairs lst)
-  (map (lambda x (let ((rep (assoc x replacement-pairs)))
+  (map (lambda (x) (let ((rep (assoc x replacement-pairs)))
                    (if rep (cadr rep) x))) lst))
   
 ;(define (many-replace replacement-pairs lst)
@@ -102,3 +105,5 @@
                        )
          )
 )
+
+(visit-doctor 'Egor)
