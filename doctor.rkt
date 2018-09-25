@@ -29,22 +29,7 @@
 (define all-keywords
   (foldl (lambda (x y) (append (filter (lambda (w) (not (member w y))) (car x)) y)) '() keys))
 
-(define (keys-pred response)
-  (ormap (lambda (x) (if (member x all-keywords) #t #f)) response))
 
-(define (keywords-strategy response)
-  (if (not (keys-pred response))
-      (hedge response)
-      (let* ((response-keywords (filter (lambda (x) (member x all-keywords)) response))
-            (chosen-keyword (pick-random response-keywords))
-            (valid-replies
-                 (foldl (lambda (key-group rest) (
-                               cond ((member chosen-keyword (car key-group))
-                                         (append (cadr key-group) rest))
-                                     (else rest))) '() keys))
-            (chosen-reply (pick-random valid-replies))
-            (reply (many-replace (list (list '* chosen-keyword)) chosen-reply)))
-        reply)))
 
 ; основная функция, запускающая "Доктора"
 ; параметр name -- имя пациента
@@ -68,44 +53,9 @@
 ;   (doctor-driver-loop name '())
 ; )
 
-; цикл диалога Доктора с пациентом
-; параметр name -- имя пациента
-(define (doctor-driver-loop name prev-responses)
-    (newline)
-    (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
-    (let ((user-response (read)))
-      (cond 
-	    ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
-             (printf "Goodbye, ~a!\n" name)
-             (printf "see you next week\n"))
-            (else (print (reply user-response prev-responses)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
-                  (doctor-driver-loop name (cons user-response prev-responses))
-             )
-       )
-      )
-)
-
-; генерация ответной реплики по user-response -- реплике от пользователя 
-(define (reply user-response prev-responses)
-  (if (keys-pred user-response)
-      (keywords-strategy user-response)
-      (
-  (let ((rand (if (>= (length prev-responses) 3) (random 3) (random 2))))
-    (cond ((= rand 0) (hedge))
-          ((= rand 1) (qualifier-answer user-response))
-          (else (history-answer prev-responses)))))))
-  
-
-; возвращает #f с вероятностью 1/2 либо #t с вероятностью 1/2
-(define (fifty-fifty)
-  (= (random 2) 0)
-)
-
-(define (history-answer prev-responses)
-  (append '(earlier you said that) (change-person (pick-random prev-responses))))
-			
 ; 1й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату нового начала
-(define (qualifier-answer user-response)
+(define (qualifier-answer-pred x . rest) #t)
+(define (qualifier-answer user-response prev-responses)
         (append (pick-random '((you seem to think that)
                                (you feel that)
                                (why do you believe that)
@@ -118,6 +68,88 @@
                 (change-person user-response)
         )
  )
+
+; 2й способ генерации ответной реплики -- случайный выбор одной из заготовленных фраз, не связанных с репликой пользователя
+(define (hedge-pred x . rest) #t)
+(define (hedge . rest)
+       (pick-random '((please go on)
+                       (many people have the same sorts of feelings)
+                       (many of my patients have told me the same thing)
+                       (please continue)
+                       (sometimes i think that myself)
+                       (tell me more)
+                       (i am listening)
+                       )
+         )
+)
+; 3й способ -- на основе предыдущих ответов
+(define (history-answer-pred user-response prev-responses)
+  (> (length prev-responses) 3))
+(define (history-answer user-response prev-responses)
+  (append '(earlier you said that) (change-person (pick-random prev-responses))))
+
+; 4й способ -- на основе ключевых слов в ответе
+(define (keywords-strategy-pred response prev-responses)
+  (ormap (lambda (x) (if (member x all-keywords) #t #f)) response))
+(define (keywords-strategy response prev-responses)
+  (let* ((response-keywords (filter (lambda (x) (member x all-keywords)) response))
+         (chosen-keyword (pick-random response-keywords))
+         (valid-replies
+                 (foldl (lambda (key-group rest) (
+                               cond ((member chosen-keyword (car key-group))
+                                         (append (cadr key-group) rest))
+                                     (else rest))) '() keys))
+         (chosen-reply (pick-random valid-replies))
+         (reply (many-replace (list (list '* chosen-keyword)) chosen-reply)))
+    reply))
+
+
+; стратегия ответа
+(define strategy 
+  (list
+   (list 1 hedge-pred hedge)
+   (list 3 qualifier-answer-pred qualifier-answer)
+   (list 2 history-answer-pred history-answer)
+   (list 10 keywords-strategy-pred keywords-strategy)
+  )
+)
+
+
+
+; цикл диалога Доктора с пациентом
+; параметр name -- имя пациента
+(define (doctor-driver-loop name prev-responses)
+    (newline)
+    (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
+    (let ((user-response (read)))
+      (cond 
+	    ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
+             (printf "Goodbye, ~a!\n" name)
+             (printf "see you next week\n"))
+            (else (print (reply strategy user-response prev-responses)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
+                  (doctor-driver-loop name (cons user-response prev-responses))
+             )
+       )
+      )
+)
+
+; генерация ответной реплики по user-response -- реплике от пользователя
+(define (reply strategy user-response prev-responses)
+  (let ((weighted-strats (foldl (lambda (strat rest) (append (build-list (car strat) (lambda (x) (caddr strat))) rest)) '() (filter (lambda (strat) ((list-ref strat 1) user-response prev-responses)) strategy))))
+   ((pick-random weighted-strats) user-response prev-responses)))
+;(define (reply user-response prev-responses) 
+;  (if (keys-pred user-response)
+;      (keywords-strategy user-response)
+;      (
+;  (let ((rand (if (>= (length prev-responses) 3) (random 3) (random 2))))
+;    (cond ((= rand 0) (hedge))
+;          ((= rand 1) (qualifier-answer user-response))
+;          (else (history-answer prev-responses)))))))
+  
+
+
+
+
 
 ; случайный выбор одного из элементов списка lst
 (define (pick-random lst)
@@ -154,17 +186,6 @@
 ;                            (many-replace replacement-pairs (cdr lst)) ; рекурсивно производятся замены в хвосте списка
 ;                        )))))
 
-; 2й способ генерации ответной реплики -- случайный выбор одной из заготовленных фраз, не связанных с репликой пользователя
-(define (hedge)
-       (pick-random '((please go on)
-                       (many people have the same sorts of feelings)
-                       (many of my patients have told me the same thing)
-                       (please continue)
-                       (sometimes i think that myself)
-                       (tell me more)
-                       (i am listening)
-                       )
-         )
-)
+
 
 (visit-doctor 'superstop 3)
