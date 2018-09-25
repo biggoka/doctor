@@ -35,12 +35,16 @@
 (define (keywords-strategy response)
   (if (not (keys-pred response))
       (hedge response)
-      (let ((response-keywords (filter (lambda (x) (member x all-keywords)) response)))
-        (foldl (lambda (key-group, rest) (
-                               (if (ormap (lambda (x) ()) (car key-group)) () ())
-                               )) '() keys)
-       
-       )))
+      (let* ((response-keywords (filter (lambda (x) (member x all-keywords)) response))
+            (chosen-keyword (pick-random response-keywords))
+            (valid-replies
+                 (foldl (lambda (key-group rest) (
+                               cond ((member chosen-keyword (car key-group))
+                                         (append (cadr key-group) rest))
+                                     (else rest))) '() keys))
+            (chosen-reply (pick-random valid-replies))
+            (reply (many-replace (list (list '* chosen-keyword)) chosen-reply)))
+        reply)))
 
 ; основная функция, запускающая "Доктора"
 ; параметр name -- имя пациента
@@ -83,10 +87,13 @@
 
 ; генерация ответной реплики по user-response -- реплике от пользователя 
 (define (reply user-response prev-responses)
+  (if (keys-pred user-response)
+      (keywords-strategy user-response)
+      (
   (let ((rand (if (>= (length prev-responses) 3) (random 3) (random 2))))
     (cond ((= rand 0) (hedge))
           ((= rand 1) (qualifier-answer user-response))
-          (else (history-answer prev-responses)))))
+          (else (history-answer prev-responses)))))))
   
 
 ; возвращает #f с вероятностью 1/2 либо #t с вероятностью 1/2
@@ -160,4 +167,4 @@
          )
 )
 
-'(visit-doctor 'superstop 3)
+(visit-doctor 'superstop 3)
