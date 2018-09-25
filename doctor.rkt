@@ -2,13 +2,67 @@
 #lang scheme/base
 ; В учебных целях используется базовая версия Scheme
 
+(define keys '( 
+  (
+    (depressed suicide exams university)
+    (
+     (when you feel depressed, go out for ice cream)
+     (depression is a disease that can be treated)
+    )
+  )
+  (
+    (mother father parents brother sister uncle ant grandma grandpa)
+    (
+     (tell me more about your * , i want to know all about your *)
+     (why do you feel that way about your * ?)
+    )
+  )
+  (
+    (university scheme lections)
+    (
+     (your education is important)
+     (how many time do you spend to learning ?)
+    )
+  )
+))
+
+(define all-keywords
+  (foldl (lambda (x y) (append (filter (lambda (w) (not (member w y))) (car x)) y)) '() keys))
+
+(define (keys-pred response)
+  (ormap (lambda (x) (if (member x all-keywords) #t #f)) response))
+
+(define (keywords-strategy response)
+  (if (not (keys-pred response))
+      (hedge response)
+      (let ((response-keywords (filter (lambda (x) (member x all-keywords)) response)))
+        (foldl (lambda (key-group, rest) (
+                               (if (ormap (lambda (x) ()) (car key-group)) () ())
+                               )) '() keys)
+       
+       )))
+
 ; основная функция, запускающая "Доктора"
 ; параметр name -- имя пациента
-(define (visit-doctor name)
-  (printf "Hello, ~a!\n" name)
-  (print '(what seems to be the trouble?))
-  (doctor-driver-loop name '())
-)
+(define (visit-doctor stop-word patients-num)
+  (if (< patients-num 1) 0 
+    ((print 'next!)
+     (newline)
+    (printf "who are you?")
+    (newline)
+    (print '**)
+    (let ((user-response (read)))
+      (cond 
+        ((equal? user-response stop-word)
+          (print '(ok, goodbye)))
+        (else
+          (printf "what seems to be the problem, ~a?" (car user-response))
+          (doctor-driver-loop (car user-response) '())
+          (visit-doctor stop-word (- patients-num 1))))))))
+  ; (printf "Hello, ~a!\n" name)
+;   (print '(what seems to be the trouble?))
+;   (doctor-driver-loop name '())
+; )
 
 ; цикл диалога Доктора с пациентом
 ; параметр name -- имя пациента
@@ -19,7 +73,7 @@
       (cond 
 	    ((equal? user-response '(goodbye)) ; реплика '(goodbye) служит для выхода из цикла
              (printf "Goodbye, ~a!\n" name)
-             (print '(see you next week)))
+             (printf "see you next week\n"))
             (else (print (reply user-response prev-responses)) ; иначе Доктор генерирует ответ, печатает его и продолжает цикл
                   (doctor-driver-loop name (cons user-response prev-responses))
              )
@@ -106,4 +160,4 @@
          )
 )
 
-(visit-doctor 'Egor)
+'(visit-doctor 'superstop 3)
