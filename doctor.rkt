@@ -8,6 +8,9 @@
     (
      (when you feel depressed, go out for ice cream)
      (depression is a disease that can be treated)
+     (it will get better ..., just kidding)
+     (you chose yourself to study there)
+     (stop complaining and go БOTATb)
     )
   )
   (
@@ -15,6 +18,9 @@
     (
      (tell me more about your * , i want to know all about your *)
      (why do you feel that way about your * ?)
+     (whats wrong with your *)
+     (its typical for *)
+     (you are not alone when it comes to dealing with *)
     )
   )
   (
@@ -22,6 +28,9 @@
     (
      (your education is important)
      (how many time do you spend to learning ?)
+     (you should have payed more attention to english lessons)
+     (personally, i think that scheme is awesome)
+     (msu for the win)
     )
   )
 ))
@@ -34,7 +43,7 @@
 ; основная функция, запускающая "Доктора"
 ; параметр name -- имя пациента
 (define (visit-doctor stop-word patients-num)
-  (if (< patients-num 1) 0 
+  (if (< patients-num 1) (printf "goodbye/n") 
     ((print 'next!)
      (newline)
     (printf "who are you?")
@@ -42,8 +51,9 @@
     (print '**)
     (let ((user-response (read)))
       (cond 
-        ((equal? user-response stop-word)
-          (print '(ok, goodbye)))
+        ((eq? (car user-response) stop-word)
+          (print '(ok, goodbye))
+          0)
         (else
           (printf "what seems to be the problem, ~a?" (car user-response))
           (doctor-driver-loop (car user-response) '())
@@ -53,7 +63,7 @@
 ;   (doctor-driver-loop name '())
 ; )
 
-; 1й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату нового начала
+; 1й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату нового начала 
 (define (qualifier-answer-pred x . rest) #t)
 (define (qualifier-answer user-response prev-responses)
         (append (pick-random '((you seem to think that)
@@ -108,9 +118,9 @@
 (define strategy 
   (list
    (list 1 hedge-pred hedge)
-   (list 3 qualifier-answer-pred qualifier-answer)
-   (list 2 history-answer-pred history-answer)
-   (list 10 keywords-strategy-pred keywords-strategy)
+   (list 1 qualifier-answer-pred qualifier-answer)
+   (list 1 history-answer-pred history-answer)
+   (list 1 keywords-strategy-pred keywords-strategy)
   )
 )
 
@@ -135,8 +145,20 @@
 
 ; генерация ответной реплики по user-response -- реплике от пользователя
 (define (reply strategy user-response prev-responses)
-  (let ((weighted-strats (foldl (lambda (strat rest) (append (build-list (car strat) (lambda (x) (caddr strat))) rest)) '() (filter (lambda (strat) ((list-ref strat 1) user-response prev-responses)) strategy))))
-   ((pick-random weighted-strats) user-response prev-responses)))
+  (define (choose-with-weights random-left lst)
+    (let ((after-random (- random-left (caar lst))))
+      (if (< after-random 0)
+          (caddar lst)
+          (choose-with-weights after-random (cdr lst)))))
+  (let* ((valid-strats (filter (lambda (strat) ((list-ref strat 1) user-response prev-responses)) strategy))
+         (weight-sum (foldl (lambda (strat sum) (+ sum (car strat))) 0 valid-strats)))
+  ((choose-with-weights (random weight-sum) valid-strats) user-response prev-responses)))
+
+
+;(define (reply strategy user-response prev-responses)
+;  (let ((weighted-strats (foldl (lambda (strat rest) (append (build-list (car strat) (lambda (x) (caddr strat))) rest)) '() (filter (lambda (strat) ((list-ref strat 1) user-response prev-responses)) strategy))))
+;   ((pick-random weighted-strats) user-response prev-responses)))
+
 ;(define (reply user-response prev-responses) 
 ;  (if (keys-pred user-response)
 ;      (keywords-strategy user-response)
