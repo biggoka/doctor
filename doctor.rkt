@@ -30,7 +30,7 @@
      (how many time do you spend to learning ?)
      (you should have payed more attention to english lessons)
      (personally, i think that scheme is awesome)
-     (msu for the win)
+     (msu for the win!!1!!!!)
     )
   )
 ))
@@ -43,8 +43,8 @@
 ; основная функция, запускающая "Доктора"
 ; параметр name -- имя пациента
 (define (visit-doctor stop-word patients-num)
-  (if (< patients-num 1) (printf "goodbye/n") 
-    ((print 'next!)
+  (cond ((< patients-num 1) (printf "goodbye/n")) 
+    (else (print 'next!)
      (newline)
     (printf "who are you?")
     (newline)
@@ -52,15 +52,14 @@
     (let ((user-response (read)))
       (cond 
         ((eq? (car user-response) stop-word)
-          (print '(ok, goodbye))
-          0)
+          (print '(ok, goodbye)))
         (else
           (printf "what seems to be the problem, ~a?" (car user-response))
           (doctor-driver-loop (car user-response) '())
           (visit-doctor stop-word (- patients-num 1))))))))
   ; (printf "Hello, ~a!\n" name)
 ;   (print '(what seems to be the trouble?))
-;   (doctor-driver-loop name '())
+;   (doctor-driver-loop name '()) 
 ; )
 
 ; 1й способ генерации ответной реплики -- замена лица в реплике пользователя и приписывание к результату нового начала 
@@ -118,7 +117,7 @@
 (define strategy 
   (list
    (list 1 hedge-pred hedge)
-   (list 1 qualifier-answer-pred qualifier-answer)
+   (list 1000 qualifier-answer-pred qualifier-answer)
    (list 1 history-answer-pred history-answer)
    (list 1 keywords-strategy-pred keywords-strategy)
   )
@@ -198,6 +197,14 @@
 (define (many-replace replacement-pairs lst)
   (map (lambda (x) (let ((rep (assoc x replacement-pairs)))
                    (if rep (cadr rep) x))) lst))
+
+
+;(define (many-replace replacement-pairs lst)
+;(define (helper lst res replacement-pairs)
+;  (if (null? lst) (reverse res)
+;      (begin (let ((pat-rep (assoc(car lst) replacement-pairs)))
+;               (helper (cdr lst) (cons (if pat-rep (cadr pat-rep) (car lst)) res) replacement-pairs)))))
+;(helper lst '() replacement-pairs))
   
 ;(define (many-replace replacement-pairs lst)
 ;        (cond ((null? lst) lst)
