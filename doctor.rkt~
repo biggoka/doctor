@@ -33,7 +33,6 @@
      (msu for the win!!1!!!!)
     )
   )
-  ;;добавить группы
 ))
 
 (define all-keywords
@@ -43,7 +42,6 @@
 
 ; основная функция, запускающая "Доктора"
 ; параметр name -- имя пациента
-; patients-num
 (define (visit-doctor stop-word patients-num)
   (cond ((< patients-num 1) (printf "goodbye/n")) 
     (else (print 'next!)
@@ -95,13 +93,13 @@
 )
 ; 3й способ -- на основе предыдущих ответов
 (define (history-answer-pred user-response prev-responses)
-  (> (length prev-responses) 3)) ;сделать нул
+  (> (length prev-responses) 3))
 (define (history-answer user-response prev-responses)
   (append '(earlier you said that) (change-person (pick-random prev-responses))))
 
 ; 4й способ -- на основе ключевых слов в ответе
 (define (keywords-strategy-pred response prev-responses)
-  (ormap (lambda (x) (if (member x all-keywords) #t #f)) response));нужен ли иф
+  (ormap (lambda (x) (if (member x all-keywords) #t #f)) response))
 (define (keywords-strategy response prev-responses)
   (let* ((response-keywords (filter (lambda (x) (member x all-keywords)) response))
          (chosen-keyword (pick-random response-keywords))
@@ -111,7 +109,7 @@
                                          (append (cadr key-group) rest))
                                      (else rest))) '() keys))
          (chosen-reply (pick-random valid-replies))
-         (reply (many-replace (list (list '* chosen-keyword)) chosen-reply)));;почему лист а не кавычка
+         (reply (many-replace (list (list '* chosen-keyword)) chosen-reply)))
     reply))
 
 
@@ -119,9 +117,9 @@
 (define strategy 
   (list
    (list 1 hedge-pred hedge)
-   (list 3 qualifier-answer-pred qualifier-answer)
-   (list 2 history-answer-pred history-answer)
-   (list 15 keywords-strategy-pred keywords-strategy)
+   (list 1000 qualifier-answer-pred qualifier-answer)
+   (list 1 history-answer-pred history-answer)
+   (list 1 keywords-strategy-pred keywords-strategy)
   )
 )
 
@@ -129,7 +127,6 @@
 
 ; цикл диалога Доктора с пациентом
 ; параметр name -- имя пациента
-; prev-responses -- список реплик
 (define (doctor-driver-loop name prev-responses)
     (newline)
     (print '**) ; доктор ждёт ввода реплики пациента, приглашением к которому является **
@@ -146,16 +143,15 @@
 )
 
 ; генерация ответной реплики по user-response -- реплике от пользователя
-; параметры
 (define (reply strategy user-response prev-responses)
   (define (choose-with-weights random-left lst)
     (let ((after-random (- random-left (caar lst))))
       (if (< after-random 0)
           (caddar lst)
           (choose-with-weights after-random (cdr lst)))))
-  (let* ((valid-strats (filter (lambda (strat) ((cadr strat) user-response prev-responses)) strategy))
+  (let* ((valid-strats (filter (lambda (strat) ((list-ref strat 1) user-response prev-responses)) strategy))
          (weight-sum (foldl (lambda (strat sum) (+ sum (car strat))) 0 valid-strats)))
-  ((choose-with-weights (random weight-sum) valid-strats) user-response prev-responses)));убрать подсчет суммы в пик рандом
+  ((choose-with-weights (random weight-sum) valid-strats) user-response prev-responses)))
 
 
 ;(define (reply strategy user-response prev-responses)
